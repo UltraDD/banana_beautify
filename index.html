@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PPT 美化功能页</title>
+    <style>
+      :root {
+        --bg: #f5f5f7; /* Apple 浅灰背景 */
+        --panel: #ffffff;
+        --text: #1d1d1f; /* Apple 深灰字 */
+        --subtext: #86868b;
+        --border: rgba(0, 0, 0, 0.08); /* 更淡的边框 */
+        --active: #713EE2; /* Purple */
+        --active-bg: rgba(113, 62, 226, 0.1);
+        --focus-ring: rgba(113, 62, 226, 0.4);
+        --radius-l: 18px;
+        --radius-m: 12px;
+        --radius-s: 8px;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+        outline: none;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        height: 52px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 20px;
+        font-weight: 500;
+        font-size: 14px;
+        position: relative;
+        z-index: 10;
+      }
+      
+      header::before {
+        content: "PPT 美化";
+        position: absolute;
+        left: 20px;
+        font-weight: 600;
+      }
+
+      .layout {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+
+      .left {
+        width: 240px;
+        background: #fff;
+        border-right: 1px solid var(--border);
+        padding: 16px;
+        overflow-y: auto;
+      }
+
+      .left-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .left-title {
+        font-size: 13px;
+        color: var(--subtext);
+        font-weight: 600;
+      }
+      .select-all {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--subtext);
+        cursor: pointer;
+        user-select: none;
+      }
+      .select-all-circle {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 1.5px solid #cfcfd6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        transition: all 0.2s;
+      }
+      .select-all.active {
+        color: var(--active);
+      }
+      .select-all.active .select-all-circle {
+        background: var(--active);
+        border-color: var(--active);
+      }
+      .select-all.active .select-all-circle::after {
+        content: "";
+        width: 6px;
+        height: 10px;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        transform: rotate(45deg);
+        display: block;
+      }
+
+      .thumb-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      /* 统一的选中逻辑样式 */
+      .selectable-item {
+        position: relative;
+        border: 2px solid transparent; /* 预留边框位置避免跳动 */
+        transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .selectable-item:hover .select-ring {
+        opacity: 1;
+        transform: scale(1);
+      }
+      
+      .selectable-item.selected {
+        border-color: var(--active);
+        background: #fff;
+      }
+
+      .selectable-item.selected .select-ring {
+        opacity: 1;
+        background: var(--active);
+        border-color: var(--active);
+        transform: scale(1);
+      }
+      
+      .select-ring {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.2);
+        background: rgba(255,255,255,0.9);
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.2s ease;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .select-ring::after {
+        content: "";
+        width: 10px;
+        height: 6px;
+        border-left: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        transform: rotate(-45deg) translate(1px, -1px);
+        display: block;
+      }
+
+      .thumb {
+        height: 120px;
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--subtext);
+        font-size: 12px;
+        position: relative;
+        overflow: hidden;
+      }
+      .thumb-inner {
+        width: 100%;
+        height: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+      }
+      .thumb-inner img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .center {
+        flex: 1;
+        background: #fff;
+        padding: 30px 40px;
+        overflow-y: auto;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .center-grid {
+        width: 100%;
+        max-width: 900px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding-bottom: 80px;
+      }
+
+      .slide-card {
+        height: 480px; /* 更大的预览 */
+        background: #fff;
+        border-radius: var(--radius-l);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border); /* 极细边框 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: var(--subtext);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .slide-card .select-ring {
+        top: 16px;
+        right: 16px;
+        width: 28px;
+        height: 28px;
+      }
+
+      .right {
+        /* width: 340px; removed fixed width in CSS, handled by inline style */
+        background: #fff; /* 右侧纯白 */
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        min-width: 280px;
+        max-width: 600px;
+      }
+
+      .config-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+      
+      .config-header {
+        margin-bottom: 24px;
+      }
+
+      .config-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      
+      .config-subtitle {
+        font-size: 13px;
+        color: var(--subtext);
+      }
+
+      .section {
+        margin-bottom: 32px;
+      }
+
+      .section-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--subtext);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+      }
+
+      .control-group {
+        background: var(--bg);
+        border-radius: var(--radius-m);
+        padding: 4px; /* Grouped style */
+      }
+      
+      .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      /* Segmented Control */
+      .segmented {
+        background: rgba(118, 118, 128, 0.12);
+        border-radius: 9px;
+        padding: 2px;
+        display: flex;
+        position: relative;
+      }
+
+      .seg-item {
+        flex: 1;
+        text-align: center;
+        padding: 6px 0;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 7px;
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
+        transition: all 0.2s;
+        color: var(--text);
+      }
+      
+      .seg-item.active {
+        background: #fff;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04);
+      }
+
+      /* Chips */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 6px 14px;
+        border-radius: 99px;
+        background: #f5f5f7;
+        font-size: 13px;
+        color: var(--text);
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+      
+      .chip:hover {
+        background: #e5e5ea;
+      }
+
+      .chip.active {
+        background: var(--active-bg);
+        color: var(--active);
+        border-color: rgba(113, 62, 226, 0.2);
+      }
+
+      /* Input/Select - Minimal */
+      select, input[type="text"], textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: var(--radius-s);
+        border: 1px solid rgba(0,0,0,0.1);
+        font-family: inherit;
+        font-size: 13px;
+        background: #fff;
+        transition: border 0.2s;
+      }
+      
+      select:focus, input:focus, textarea:focus {
+        border-color: var(--active);
+        box-shadow: 0 0 0 3px var(--active-bg);
+      }
+
+      /* Toggle Switch - Apple Style */
+      .toggle-switch {
+        appearance: none;
+        width: 40px;
+        height: 24px;
+        background: #e9e9ea;
+        border-radius: 99px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      
+      .toggle-switch::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: transform 0.3s cubic-bezier(0.3, 1.5, 0.7, 1);
+      }
+      
+      .toggle-switch:checked {
+        background: #34c759; /* Apple Green */
+      }
+      
+      .toggle-switch:checked::after {
+        transform: translateX(16px);
+      }
+
+      /* Upload */
+      .upload-area {
+        border: 1px dashed rgba(0,0,0,0.2);
+        border-radius: var(--radius-m);
+        height: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--subtext);
+        cursor: pointer;
+        background: #fafafa;
+        transition: all 0.2s;
+      }
+      
+      .upload-area:hover {
+        background: #f0f0f5;
+        border-color: rgba(0,0,0,0.3);
+      }
+
+      /* Sticky Actions */
+      .sticky-footer {
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: var(--radius-m);
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: var(--active);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(113, 62, 226, 0.3);
+      }
+      
+      .btn-primary:hover {
+        background: #5b2cbd;
+      }
+      
+      .btn-primary.loading {
+        opacity: 0.7;
+        cursor: wait;
+      }
+
+      .btn-secondary {
+        background: var(--active-bg);
+        color: var(--active);
+      }
+      
+      .btn-secondary:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .tool-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 4px;
+      }
+      
+      .icon-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--subtext);
+        padding: 8px;
+        border-radius: 8px;
+        transition: all 0.2s;
+      }
+      
+      .icon-btn:hover {
+        background: rgba(0,0,0,0.05);
+        color: var(--text);
+      }
+
+      /* Preview Banner */
+      .preview-toast {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 99px;
+        font-size: 13px;
+        font-weight: 500;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .preview-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #34c759;
+      }
+
+      /* Modal - Apple Style */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.2);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+      }
+      
+      .modal-backdrop.show { display: flex; }
+      
+      .modal-content {
+        background: #fff;
+        width: 300px;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        text-align: center;
+      }
+
+      /* 新增样式：小 Tab 参考设计 */
+      .mini-tabs {
+        display: flex;
+        background: #f5f5f7;
+        border-radius: 8px 8px 0 0;
+        padding: 4px 4px 0;
+        gap: 2px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+      }
+
+      .mini-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+        color: var(--subtext);
+        cursor: pointer;
+        border-radius: 6px 6px 0 0;
+        background: transparent;
+        transition: all 0.2s;
+        flex: 1;
+        text-align: center;
+      }
+
+      .mini-tab.active {
+        background: #fff;
+        color: var(--text);
+        font-weight: 600;
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.02);
+      }
+
+      .mini-content {
+        border-radius: 0 0 8px 8px;
+        padding: 16px;
+        background: #f5f5f7;
+        min-height: 80px;
+      }
+      
+      .ref-pane {
+        display: none;
+      }
+      .ref-pane.active {
+        display: block;
+      }
+
+      /* 新增样式：折叠偏好 - 默认展开版 */
+      .pref-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 0;
+        margin-bottom: 8px;
+      }
+      .pref-body {
+        display: block; /* Always show */
+      }
+
+      /* 新增样式：Section Header (用于标题+右侧按钮) */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .section-header .section-label {
+        margin-bottom: 0;
+      }
+
+      /* History Card Actions - Right Side Hover */
+      .history-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        background: #fff;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+      .history-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        width: 100%;
+        position: relative;
+      }
+      .history-body {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease;
+      }
+      .history-card.expanded .history-body {
+        max-height: none;
+        opacity: 1;
+      }
+      .history-preview {
+        background: #f5f5f7;
+        border-radius: 10px;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .history-preview img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      .history-card:hover {
+        border-color: var(--active);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        transform: translateY(-2px);
+      }
+      .h-actions {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 90px; /* Fixed width for actions */
+        padding: 8px;
+        background: linear-gradient(to left, #fff 80%, rgba(255,255,255,0));
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        opacity: 0;
+        transform: translateX(10px);
+        transition: all 0.2s ease;
+        pointer-events: none; /* Initially disable clicks */
+      }
+      .history-card:hover .h-actions {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+      
+      .btn-mini {
+        width: 100%;
+        font-size: 11px;
+        padding: 4px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .btn-mini:hover {
+        border-color: var(--active);
+        color: var(--active);
+      }
+      .btn-mini.primary {
+        background: var(--active);
+        border-color: var(--active);
+        color: #fff;
+      }
+      .btn-mini.primary:hover {
+        background: var(--active-hover);
+        filter: brightness(0.9);
+        color: #fff; 
+      }
+      .h-thumb {
+        width: 64px;
+        height: 44px;
+        background: #f0f0f5;
+        border-radius: 6px;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .h-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .h-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+      .h-title { 
+        font-size: 13px; 
+        font-weight: 600; 
+        margin-bottom: 4px; 
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .h-meta { 
+        font-size: 11px; 
+        color: var(--subtext); 
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .h-tag {
+        background: rgba(0,0,0,0.05);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+      }
+
+      /* Template Grid */
+      .template-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .template-item {
+        aspect-ratio: 16/9;
+        background: #e1e1e6;
+        border-radius: 6px;
+        position: relative;
+        cursor: pointer;
+        overflow: hidden;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+      }
+      .template-item:hover {
+        border-color: var(--active);
+      }
+      .template-item.selected {
+        border-color: var(--active);
+        box-shadow: 0 0 0 2px var(--active-bg);
+      }
+      .template-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-size: 12px;
+        background: linear-gradient(135deg, #f0f0f5 25%, #e1e1e6 25%, #e1e1e6 50%, #f0f0f5 50%, #f0f0f5 75%, #e1e1e6 75%, #e1e1e6 100%);
+        background-size: 20px 20px;
+        opacity: 0.5;
+      }
+
+      /* Resizer Handle */
+      .resizer {
+        width: 12px; /* Widen hit area */
+        cursor: col-resize;
+        background: transparent;
+        z-index: 100; /* Ensure on top */
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-50%);
+        transition: background 0.2s;
+      }
+      
+      /* New Mode Selection Styles - Option Cards */
+      .mode-selection {
+        display: flex;
+        background: transparent;
+        padding: 0;
+        gap: 12px; /* Separate cards */
+        margin-bottom: 12px;
+      }
+      
+      .mode-option {
+        flex: 1;
+        border: 1px solid transparent; /* Prepare for border change */
+        border-radius: 12px;
+        padding: 14px 10px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        background: #fff; /* White cards */
+        display: flex;
+        flex-direction: column; /* Vertical layout */
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-align: center;
+        position: relative;
+        color: var(--text);
+        box-shadow: var(--shadow-sm);
+      }
+      
+      .mode-option:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+      
+      .mode-option.active {
+        background: #fff;
+        color: var(--active);
+        border: 2px solid var(--active); /* Active border */
+        box-shadow: 0 4px 12px rgba(113, 62, 226, 0.15);
+      }
+      
+      .mode-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 0;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit; /* Inherit form parent */
+        transition: none;
+      }
+      
+      .mode-option.active .mode-icon {
+        background: transparent;
+        color: inherit;
+      }
+      
+      .mode-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: inherit;
+      }
+      
+      .mode-option.active .mode-label {
+        color: inherit;
+      }
+      
+      .resizer:hover, .resizer.active {
+        background: rgba(113, 62, 226, 0.3);
+      }
+      
+      .right {
+        /* width: 340px;  Removed fixed width here, controlled by inline style or default */
+        min-width: 280px;
+        max-width: 600px;
+        background: #fff;
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header></header>
+      <div class="layout">
+        <aside class="left">
+          <div class="left-header">
+            <div class="left-title">幻灯片</div>
+            <div class="select-all" id="selectAllBtn">
+              <span>全选</span>
+              <div class="select-all-circle"></div>
+            </div>
+          </div>
+          <div id="thumbList" class="thumb-grid"></div>
+        </aside>
+        
+        <main class="center">
+          <div class="preview-toast" id="selectionToast">
+             <div class="status-dot"></div>
+             <span id="selectionText">已选 1 页</span>
+          </div>
+
+          <div class="center-grid" id="centerGrid"></div>
+        </main>
+        
+        <aside class="right" style="width: 340px;">
+          <div class="resizer" id="dragHandle"></div>
+          <div class="config-scroll">
+            <div class="config-header">
+              <div class="config-title">🍌 智能美化</div>
+            </div>
+
+            <section class="section">
+              <div class="mode-selection" id="modeSelection">
+                <div class="mode-option active" data-mode="diagram">
+                  <div class="mode-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  </div>
+                  <div class="mode-label">规范设计</div>
+                </div>
+                <div class="mode-option" data-mode="free">
+                  <div class="mode-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                  </div>
+                  <div class="mode-label">自由设计</div>
+                </div>
+              </div>
+              <div style="margin-top: 12px; font-size: 13px; color: var(--subtext); line-height: 1.4; text-align: center;" id="modeDesc">
+                严格遵守模板规范，仅优化内容排版与图示
+              </div>
+            </section>
+
+            <section class="section" id="pageRangeSection">
+              <div class="section-label">页面范围</div>
+              <div class="control-group">
+                <div class="control-row">
+                   <span>已选页面</span>
+                   <span style="color: var(--active); font-weight: 500;" id="pageRangeValue">第 1 页</span>
+                </div>
+              </div>
+            </section>
+            
+            <section class="section">
+              <div class="section-label">参考设计</div>
+              <div class="mini-tabs" id="refTabs">
+                <div class="mini-tab active" data-ref-tab="current">当前文档</div>
+                <div class="mini-tab" data-ref-tab="library">模板库</div>
+                <div class="mini-tab" data-ref-tab="upload">上传参考</div>
+              </div>
+              
+              <div class="mini-content">
+                <!-- Tab 1: 当前文档 -->
+                <div id="ref-current" class="ref-pane active">
+                  <div class="control-row" style="padding: 0;">
+                     <span>参考幻灯片</span>
+                     <button class="btn-mini" style="flex: 0 0 auto; width: auto; padding: 6px 16px; background: #f5f5f7; border: 1px solid rgba(0,0,0,0.05);" id="customRefBtn">添加</button>
+                  </div>
+                </div>
+
+                <!-- Tab 2: 模板库 -->
+                <div id="ref-library" class="ref-pane">
+                   <div class="template-grid">
+                      <div class="template-item"><div class="template-placeholder">Template A</div></div>
+                      <div class="template-item"><div class="template-placeholder">Template B</div></div>
+                      <div class="template-item"><div class="template-placeholder">Template C</div></div>
+                      <div class="template-item"><div class="template-placeholder">Template D</div></div>
+                   </div>
+                   <div style="margin-top: 12px; display: flex; justify-content: center;">
+                      <button class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px; width: auto;">更多模板</button>
+                   </div>
+                </div>
+
+                <!-- Tab 3: 上传 -->
+                <div id="ref-upload" class="ref-pane">
+                  <div class="upload-area" id="refUploadArea" style="height: 60px; background: #fff;">
+                     <div id="uploadPlaceholder">点击或拖拽上传图片</div>
+                     <input type="file" accept="image/*" id="refUpload" style="display:none;" />
+                     <img id="uploadImg" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: none;" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="pref-header">
+                 <div class="section-label" style="margin:0;">偏好设置</div>
+              </div>
+              <div class="pref-body" id="prefBody">
+                <textarea placeholder="例如“更正式、留白多、强调结论”" style="height: 80px; resize: none;" id="boosterInput"></textarea>
+              </div>
+            </section>
+
+            <div style="margin-top: 32px; margin-bottom: 24px;">
+               <button class="btn btn-primary" id="generateBtn">生成美化方案</button>
+            </div>
+
+            <section class="section" style="border-top: 1px solid var(--border); padding-top: 20px;">
+              <div class="section-header">
+                <div class="section-label">最近生成</div>
+                <button class="icon-btn" title="查看全部历史" id="historyBtn" style="padding: 4px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </button>
+              </div>
+              <div id="inlineHistoryList">
+                 <div style="font-size: 12px; color: var(--subtext); text-align: center; padding: 20px;" id="emptyHistoryMsg">
+                    暂无生成记录
+                 </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Sticky Footer Removed -->
+        </aside>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-backdrop" id="customRefModal">
+      <div class="modal-content">
+        <div style="font-weight: 600; font-size: 16px; margin-bottom: 16px;">参考幻灯片</div>
+        <div class="chips" id="customRefChips" style="justify-content: center; margin-bottom: 24px;"></div>
+        <div class="row" style="gap: 12px;">
+          <button class="btn btn-secondary" id="customRefCancel">取消</button>
+          <button class="btn btn-primary" id="customRefOk">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="historyModal">
+      <div class="modal-content">
+        <div style="font-weight: 600; font-size: 16px; margin-bottom: 16px;">历史版本</div>
+        <div class="history-list" id="historyList" style="margin-bottom: 24px; text-align: left;"></div>
+        <button class="btn btn-secondary" id="historyClose">关闭</button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="historyPreviewModal">
+      <div class="modal-content" style="width: 600px; max-width: 90vw;">
+        <div style="font-weight: 600; font-size: 18px; margin-bottom: 20px;">方案预览</div>
+        <div style="background: #f5f5f7; height: 300px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; color: #999;">
+           <span id="previewPlaceholderText">预览图片加载中...</span>
+        </div>
+        <div class="row" style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn btn-secondary" style="width: auto;" id="previewClose">关闭</button>
+          <div style="flex: 1"></div>
+          <button class="btn btn-secondary" style="width: auto;">导出文档</button>
+          <button class="btn btn-primary" style="width: auto;">插入幻灯片</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 状态管理
+      const state = {
+        pages: ['1.png', '2.png', '3.png'],
+        selectedPages: new Set([1]), // 默认选中第1页
+        mode: 'diagram', // 'diagram' | 'free'
+        previewStatus: 'none', // 'none' | 'generated' | 'applied'
+        undoStack: [],
+        redoStack: [],
+        history: [],
+        customRef: new Set()
+      };
+
+      // DOM Elements
+      const thumbList = document.getElementById('thumbList');
+      const centerGrid = document.getElementById('centerGrid');
+      const selectionToast = document.getElementById('selectionToast');
+      const selectionText = document.getElementById('selectionText');
+      const pageRangeValue = document.getElementById('pageRangeValue');
+      const selectAllBtn = document.getElementById('selectAllBtn');
+      const modeSelection = document.getElementById('modeSelection');
+      const refTabsContainer = document.getElementById('refTabs');
+      const generateBtn = document.getElementById('generateBtn');
+      
+      // Initialize
+      function init() {
+        renderThumbs();
+        renderCenter();
+        updateSelectionUI();
+        bindEvents();
+        initResizer();
+      }
+
+      function initResizer() {
+         const handle = document.getElementById('dragHandle');
+         const rightPanel = document.querySelector('.right');
+         let isResizing = false;
+
+         handle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            handle.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+         });
+
+         document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const containerWidth = document.body.clientWidth;
+            // Calculate new width: Total Width - Mouse X
+            // But we need to account for layout structure if it was complex, 
+            // here simply: layout is full width, right is on right.
+            const newWidth = containerWidth - e.clientX;
+            
+            // Constraints are handled by CSS min/max-width, 
+            // but setting style width allows CSS to clamp it.
+            rightPanel.style.width = `${newWidth}px`;
+         });
+
+         document.addEventListener('mouseup', () => {
+            if (isResizing) {
+               isResizing = false;
+               handle.classList.remove('active');
+               document.body.style.cursor = '';
+               document.body.style.userSelect = '';
+            }
+         });
+      }
+
+      function renderThumbs() {
+        thumbList.innerHTML = '';
+        state.pages.forEach((src, index) => {
+          const i = index + 1;
+          const el = document.createElement('div');
+          el.className = 'thumb selectable-item';
+          el.dataset.page = i;
+          el.innerHTML = `
+            <div class="thumb-inner">
+              <img src="${src}" alt="缩略图 ${i}">
+            </div>
+            <div style="position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${i}</div>
+            <div class="select-ring"></div>
+          `;
+          el.addEventListener('click', (e) => handleSelection(e, i));
+          thumbList.appendChild(el);
+        });
+      }
+
+      function renderCenter() {
+        centerGrid.innerHTML = '';
+        state.pages.forEach((src, index) => {
+          const i = index + 1;
+          const el = document.createElement('div');
+          el.className = 'slide-card selectable-item';
+          el.dataset.page = i;
+          el.innerHTML = `
+            <img src="${src}" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+            <div class="select-ring"></div>
+          `;
+          el.addEventListener('click', (e) => handleSelection(e, i));
+          centerGrid.appendChild(el);
+        });
+      }
+
+      function handleSelection(e, page) {
+        // 判断点击的是圈圈还是卡片主体
+        const isRingClick = e.target.classList.contains('select-ring') || e.target.closest('.select-ring');
+        const isMultiKey = e.ctrlKey || e.metaKey || e.shiftKey;
+
+        if (isRingClick || isMultiKey) {
+           // 多选模式 toggle
+           if (state.selectedPages.has(page)) {
+             state.selectedPages.delete(page);
+           } else {
+             state.selectedPages.add(page);
+           }
+        } else {
+           // 单选模式 (除非只剩这一个且点击的是它，否则不清空)
+           state.selectedPages.clear();
+           state.selectedPages.add(page);
+        }
+        
+        updateSelectionUI();
+      }
+
+      function updateSelectionUI() {
+        // 更新所有 thumb 和 card 的状态
+        document.querySelectorAll('.selectable-item').forEach(el => {
+          const page = Number(el.dataset.page);
+          if (state.selectedPages.has(page)) {
+            el.classList.add('selected');
+          } else {
+            el.classList.remove('selected');
+          }
+        });
+
+        // 更新 Toast
+        const count = state.selectedPages.size;
+        
+        // 更新右侧栏页面范围
+        if (count === 0) {
+           pageRangeValue.textContent = '未选择';
+           pageRangeValue.style.color = 'var(--subtext)';
+        } else if (count === 1) {
+           const page = Array.from(state.selectedPages)[0];
+           pageRangeValue.textContent = `第 ${page} 页`;
+           pageRangeValue.style.color = 'var(--active)';
+        } else {
+           const pages = Array.from(state.selectedPages).sort((a,b)=>a-b);
+           pageRangeValue.textContent = `${count} 个页面 (${pages.join(',')})`;
+           pageRangeValue.style.color = 'var(--active)';
+        }
+
+        if (count > 0) {
+          selectionToast.classList.add('show');
+          selectionText.textContent = `已选 ${count} 页`;
+        } else {
+          selectionToast.classList.remove('show');
+        }
+
+        if (selectAllBtn) {
+          if (state.pages.length > 0 && state.selectedPages.size === state.pages.length) {
+            selectAllBtn.classList.add('active');
+          } else {
+            selectAllBtn.classList.remove('active');
+          }
+        }
+      }
+      
+      function bindEvents() {
+        // Mode Switching
+        modeSelection.querySelectorAll('.mode-option').forEach(item => {
+          item.addEventListener('click', () => {
+             const mode = item.dataset.mode;
+             state.mode = mode;
+             modeSelection.querySelectorAll('.mode-option').forEach(i => i.classList.remove('active'));
+             item.classList.add('active');
+             updateModeUI();
+          });
+        });
+
+        if (selectAllBtn) {
+          selectAllBtn.addEventListener('click', () => {
+            const allSelected = state.pages.length > 0 && state.selectedPages.size === state.pages.length;
+            if (allSelected) {
+              state.selectedPages.clear();
+            } else {
+              state.selectedPages.clear();
+              state.pages.forEach((_, index) => state.selectedPages.add(index + 1));
+            }
+            updateSelectionUI();
+          });
+        }
+
+        // Ref Tabs Switching
+        document.querySelectorAll('#refTabs .mini-tab').forEach(tab => {
+           tab.addEventListener('click', () => {
+              // Toggle tabs
+              document.querySelectorAll('#refTabs .mini-tab').forEach(t => t.classList.remove('active'));
+              tab.classList.add('active');
+              
+              // Show content
+              const targetId = `ref-${tab.dataset.refTab}`;
+              document.querySelectorAll('.ref-pane').forEach(p => p.classList.remove('active'));
+              document.getElementById(targetId).classList.add('active');
+           });
+        });
+
+        // Pref Toggle (Removed logic, now always open)
+        // const prefToggle = document.getElementById('prefToggle'); ...
+
+        // Upload
+        const uploadArea = document.getElementById('refUploadArea');
+        const fileInput = document.getElementById('refUpload');
+        const imgPreview = document.getElementById('uploadImg');
+        const placeholder = document.getElementById('uploadPlaceholder');
+        
+        if (uploadArea) {
+           uploadArea.addEventListener('click', () => fileInput.click());
+           fileInput.addEventListener('change', (e) => {
+              const file = e.target.files[0];
+              if (file) {
+                 const reader = new FileReader();
+                 reader.onload = (evt) => {
+                    imgPreview.src = evt.target.result;
+                    imgPreview.style.display = 'block';
+                    placeholder.style.display = 'none';
+                 };
+                 reader.readAsDataURL(file);
+              }
+           });
+        }
+
+        // Generate
+        generateBtn.addEventListener('click', () => {
+           if (generateBtn.classList.contains('loading')) return;
+           generateBtn.classList.add('loading');
+           generateBtn.textContent = '生成中...';
+           
+           setTimeout(() => {
+              generateBtn.classList.remove('loading');
+              generateBtn.textContent = '生成美化方案';
+              state.previewStatus = 'generated';
+              
+              // Push state for undo
+              pushHistory('智能美化方案');
+           }, 1500);
+        });
+
+        // Undo/Redo/History (Modal)
+        document.getElementById('historyBtn').addEventListener('click', () => {
+           const list = document.getElementById('historyList');
+           list.innerHTML = '';
+           state.history.forEach(h => {
+              const div = document.createElement('div');
+              div.style.padding = '8px';
+              div.style.borderBottom = '1px solid #eee';
+              div.textContent = h.action + ' - ' + h.time;
+              list.appendChild(div);
+           });
+           if (state.history.length === 0) list.innerHTML = '<div style="color:#999">暂无历史</div>';
+           document.getElementById('historyModal').classList.add('show');
+        });
+
+        document.getElementById('historyClose').addEventListener('click', () => {
+           document.getElementById('historyModal').classList.remove('show');
+        });
+        
+        // Custom Ref Modal
+        document.getElementById('customRefBtn').addEventListener('click', () => {
+           const container = document.getElementById('customRefChips');
+           container.innerHTML = '';
+           for(let i=1; i<=state.pages.length; i++) {
+              const chip = document.createElement('div');
+              chip.className = 'chip ' + (state.customRef.has(i) ? 'active' : '');
+              chip.textContent = i;
+              chip.onclick = () => {
+                 if (state.customRef.has(i)) state.customRef.delete(i);
+                 else state.customRef.add(i);
+                 chip.className = 'chip ' + (state.customRef.has(i) ? 'active' : '');
+              };
+              container.appendChild(chip);
+           }
+           document.getElementById('customRefModal').classList.add('show');
+        });
+        
+        document.getElementById('customRefCancel').addEventListener('click', () => {
+           document.getElementById('customRefModal').classList.remove('show');
+        });
+        
+        document.getElementById('customRefOk').addEventListener('click', () => {
+           document.getElementById('customRefModal').classList.remove('show');
+           const count = state.customRef.size;
+           const btn = document.getElementById('customRefBtn');
+           if (count > 0) {
+             btn.textContent = `已选 ${count} 页`;
+             btn.style.color = 'var(--active)';
+             btn.style.borderColor = 'var(--active)';
+             btn.style.background = 'var(--active-bg)';
+           } else {
+             btn.textContent = '添加';
+             btn.style.color = 'var(--text)';
+             btn.style.borderColor = 'rgba(0,0,0,0.05)';
+             btn.style.background = '#f5f5f7';
+           }
+        });
+      }
+      
+      function updateModeUI() {
+         const isDiagram = state.mode === 'diagram';
+         
+         document.getElementById('modeDesc').textContent = isDiagram 
+            ? '严格遵守模板规范，仅优化内容排版与图示'
+            : '自由设计页面，最大化视觉表现力';
+            
+         // Tabs order logic removed - unified order
+      }
+
+      function pushHistory(action) {
+         const time = '刚刚'; // Mock relative time
+         const selectedPages = state.selectedPages.size > 0
+           ? Array.from(state.selectedPages).sort((a, b) => a - b)
+           : [1];
+         const beautifiedSrcs = selectedPages.map(page => `${page + 3}.png`);
+         const thumbSrc = beautifiedSrcs[0];
+         const item = { action, time, targetPages: selectedPages, beautifiedSrcs };
+         state.history.unshift(item);
+         
+         // Update inline history list
+         const inlineList = document.getElementById('inlineHistoryList');
+         const emptyMsg = document.getElementById('emptyHistoryMsg');
+         if (emptyMsg) emptyMsg.style.display = 'none';
+         
+         const card = document.createElement('div');
+         card.className = 'history-card expanded';
+         card.innerHTML = `
+            <div class="history-header">
+              <div class="h-thumb">
+                <img src="${thumbSrc}" alt="美化预览">
+              </div>
+              <div class="h-info">
+                <div class="h-title">${action} ${state.history.length}</div>
+                <div class="h-meta">
+                   <span class="h-tag">${state.mode === 'diagram' ? '规范' : '自由'}</span>
+                   <span>${time}</span>
+                </div>
+              </div>
+              <div class="h-actions">
+                 <button class="btn-mini primary btn-insert">插入</button>
+                 <button class="btn-mini btn-export">导出</button>
+              </div>
+            </div>
+            <div class="history-body">
+              <div class="history-preview">
+                ${beautifiedSrcs.map(src => `<img src="${src}" alt="美化结果预览">`).join('')}
+              </div>
+            </div>
+         `;
+         
+         // Bind Events
+         card.addEventListener('click', () => {
+            document.querySelectorAll('.history-card').forEach(c => {
+              if (c !== card) c.classList.remove('expanded');
+            });
+            card.classList.toggle('expanded');
+         });
+         
+         // Prevent button clicks from triggering card click
+         const actions = card.querySelector('.h-actions');
+         actions.addEventListener('click', (e) => e.stopPropagation());
+         card.querySelector('.btn-insert').addEventListener('click', () => {
+            insertBeautifiedAfterPages(selectedPages);
+         });
+         card.querySelector('.btn-export').addEventListener('click', () => {
+            alert('导出文档');
+         });
+         
+         inlineList.insertBefore(card, inlineList.firstChild);
+         
+         // Limit to 3 items inline
+         if (inlineList.children.length > 3) {
+            inlineList.removeChild(inlineList.lastChild);
+         }
+      }
+      
+      function insertBeautifiedAfterPages(pages) {
+         const sortedPages = pages.slice().sort((a, b) => a - b);
+         sortedPages.forEach(page => {
+            const targetSrc = `${page}.png`;
+            const beautifiedSrc = `${page + 3}.png`;
+            let index = state.pages.findIndex(src => src === targetSrc);
+            if (index === -1) index = state.pages.length - 1;
+            state.pages.splice(index + 1, 0, beautifiedSrc);
+         });
+         
+         renderThumbs();
+         renderCenter();
+         updateSelectionUI();
+      }
+
+      // History Preview Close
+      document.getElementById('previewClose').addEventListener('click', () => {
+         document.getElementById('historyPreviewModal').classList.remove('show');
+      });
+
+      // Start
+      init();
+    </script>
+  </body>
+</html>

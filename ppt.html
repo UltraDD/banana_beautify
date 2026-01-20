@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI PPT 美化 - 让演示更出彩</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card-bg: #ffffff;
+      --text: #1d1d1f;
+      --subtext: #86868b;
+      --accent: #713EE2; /* 保持与 index.html 一致的主题色 */
+      --accent-hover: #5b2cbd;
+      --border: rgba(0,0,0,0.08);
+      --radius-l: 24px;
+      --radius-m: 16px;
+      --radius-s: 8px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
+    }
+
+    * { box-sizing: border-box; outline: none; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      height: 64px;
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    .logo-text { font-size: 16px; font-weight: 600; }
+    .divider { width: 1px; height: 16px; background: #ddd; margin: 0 4px; }
+    .page-title { font-size: 14px; color: var(--subtext); }
+
+    /* Steps */
+    .steps-container { display: flex; align-items: center; gap: 8px; }
+    .step-item { display: flex; align-items: center; gap: 8px; opacity: 0.4; transition: opacity 0.3s; }
+    .step-item.active { opacity: 1; }
+    .step-circle { width: 20px; height: 20px; border-radius: 50%; background: #e5e5e5; color: #666; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .step-item.active .step-circle { background: var(--accent); color: white; }
+    .step-text { font-size: 14px; font-weight: 500; }
+    .step-line { width: 40px; height: 1px; background: #e5e5e5; margin: 0 8px; }
+
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ddd; overflow: hidden; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      padding-top: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+    }
+
+    .hero-section { text-align: center; margin-bottom: 40px; animation: fadeIn 0.8s ease; }
+    .hero-title-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
+    .hero-icon { font-size: 32px; }
+    .hero-title { font-size: 32px; font-weight: 700; color: var(--text); }
+    .hero-tag { background: #FF8E00; color: white; font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 600; transform: translateY(-2px); }
+    .hero-desc { font-size: 16px; color: var(--subtext); max-width: 600px; margin: 0 auto; }
+
+    /* Upload Box */
+    .upload-container {
+      width: 100%;
+      max-width: 800px;
+      padding: 0 20px;
+      margin-bottom: 60px;
+      animation: slideUp 0.8s ease;
+    }
+
+    .upload-box {
+      background: var(--card-bg);
+      border: 2px dashed #d1d1d6;
+      border-radius: var(--radius-l);
+      height: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-box:hover {
+      border-color: var(--accent);
+      background: rgba(113, 62, 226, 0.02);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .upload-box.drag-over {
+      border-color: var(--accent);
+      background: rgba(113, 62, 226, 0.05);
+      transform: scale(1.02);
+    }
+
+    .upload-icon-group { margin-bottom: 24px; position: relative; width: 120px; height: 100px; display: flex; justify-content: center; align-items: center; }
+    .file-icon { width: 80px; height: 100px; background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; box-shadow: var(--shadow-sm); position: absolute; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #999; transition: transform 0.3s; }
+    .file-icon:nth-child(1) { transform: rotate(-10deg) translateX(-20px); z-index: 1; background: #fafafa; }
+    .file-icon:nth-child(2) { transform: rotate(10deg) translateX(20px); z-index: 1; background: #fafafa; }
+    .file-icon:nth-child(3) { transform: rotate(0); z-index: 2; border-color: var(--accent); color: var(--accent); background: #fff; box-shadow: 0 8px 16px rgba(113, 62, 226, 0.15); }
+    
+    .upload-title { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .upload-desc { font-size: 14px; color: var(--subtext); margin-bottom: 32px; }
+    
+    .upload-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 99px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(113, 62, 226, 0.3);
+      transition: all 0.2s;
+    }
+    .upload-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+    /* Recommendations */
+    .recommend-section { width: 100%; max-width: 1000px; padding: 0 20px; margin-bottom: 40px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .section-title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .more-link { font-size: 14px; color: var(--subtext); cursor: pointer; display: flex; align-items: center; gap: 4px; transition: color 0.2s; }
+    .more-link:hover { color: var(--accent); }
+
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .grid-item { background: white; border-radius: var(--radius-m); overflow: hidden; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+    .grid-item:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--accent); }
+    .item-preview { aspect-ratio: 16/9; background: #eee; position: relative; overflow: hidden; }
+    .item-preview img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+    .grid-item:hover .item-preview img { transform: scale(1.05); }
+    .item-info { padding: 12px; }
+    .item-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .item-tag { font-size: 12px; color: var(--subtext); }
+
+    /* Footer */
+    footer { padding: 40px 0; text-align: center; color: var(--subtext); font-size: 14px; border-top: 1px solid var(--border); width: 100%; margin-top: auto; }
+
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Processing State */
+    .processing-overlay {
+      position: absolute; inset: 0; background: rgba(255,255,255,0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .processing-overlay.show { opacity: 1; pointer-events: all; }
+    
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(113, 62, 226, 0.1);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 1s linear infinite; margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-text { font-size: 16px; font-weight: 600; color: var(--text); }
+    .progress-sub { font-size: 13px; color: var(--subtext); margin-top: 4px; }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 200; opacity: 0; transition: opacity 0.3s;
+    }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    
+    .modal-card {
+      background: white; width: 1400px; max-width: 96vw; height: 92vh; max-height: 96vh;
+      border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      display: flex; flex-direction: column; overflow: hidden; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal-overlay.show .modal-card { transform: scale(1); }
+
+    .modal-header {
+      height: 50px; background: #222; color: white; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; position: relative; flex-shrink: 0;
+    }
+    .modal-close { position: absolute; right: 16px; cursor: pointer; opacity: 0.7; }
+    .modal-close:hover { opacity: 1; }
+
+    /* Modal Body with unified scroll for comparison */
+    .modal-body {
+      flex: 1; background: #e5e5e5; display: block; overflow-y: auto; padding: 40px; position: relative;
+    }
+
+    /* Ref Select Modal Grid */
+    .ref-select-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .ref-select-item { 
+      border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; position: relative;
+    }
+    .ref-select-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .ref-select-item img { width: 100%; display: block; }
+    .ref-page-num {
+      position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; 
+      padding: 2px 8px; border-radius: 4px; font-size: 12px;
+    }
+
+    /* Modal 1 Specific Size */
+    #previewModal .modal-card {
+      width: 1100px; max-width: 95vw; height: 85vh;
+    }
+
+    /* Modal Split View */
+    .modal-split-view {
+      display: flex; height: 100%; width: 100%;
+    }
+    .modal-left {
+      flex: 1; background: #e5e5e5; display: flex; flex-direction: column; overflow-y: hidden; position: relative;
+    }
+    .modal-right {
+      width: 340px; background: white; border-left: 1px solid var(--border); display: flex; flex-direction: column;
+      flex-shrink: 0;
+    }
+    
+    .settings-panel {
+      flex: 1; overflow-y: auto; padding: 24px;
+    }
+    .settings-footer {
+      padding: 20px 24px; border-top: 1px solid var(--border); background: white;
+    }
+
+    /* Reused styles from index.html for settings */
+    .section-label {
+      font-size: 12px; font-weight: 600; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+    }
+    .mode-selection {
+      display: flex; gap: 12px; margin-bottom: 24px;
+    }
+    .mode-option {
+      flex: 1; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 16px 10px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; transition: all 0.2s;
+      background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .mode-option:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+    .mode-option.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--active); color: var(--accent); }
+    .mode-icon { width: 24px; height: 24px; }
+    .mode-label { font-size: 13px; font-weight: 600; }
+    .mode-desc { font-size: 11px; color: var(--subtext); margin-top: 4px; line-height: 1.4; font-weight: normal; }
+    
+    .mini-tabs {
+      display: flex; background: #f5f5f7; border-radius: 8px; padding: 4px; gap: 4px; margin-bottom: 12px;
+    }
+    .mini-tab {
+      flex: 1; padding: 6px 12px; font-size: 13px; color: var(--subtext); cursor: pointer; border-radius: 6px; text-align: center; transition: all 0.2s;
+    }
+    .mini-tab.active { background: white; color: var(--text); font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    
+    .ref-content { display: none; }
+    .ref-content.active { display: block; }
+    
+    .template-grid-mini {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;
+    }
+    .template-item-mini {
+      aspect-ratio: 16/9; background: #f0f0f5; border-radius: 6px; border: 2px solid transparent; cursor: pointer;
+    }
+    .template-item-mini:hover { border-color: var(--accent); }
+    
+    .upload-area-mini {
+      border: 1px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background: #fafafa;
+    }
+    
+    textarea.pref-input {
+      width: 100%; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 12px; font-size: 13px; font-family: inherit; resize: none; background: #fafafa;
+    }
+    textarea.pref-input:focus { border-color: var(--accent); background: white; outline: none; }
+
+    /* Reference Slide Add Button */
+    .btn-add-ref {
+      width: 100%; border: 1px dashed #ccc; background: #fafafa;
+      color: var(--accent); font-size: 13px; font-weight: 500;
+      padding: 12px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-add-ref:hover { border-color: var(--accent); background: #f0f0ff; }
+    
+    .ref-slide-preview {
+      display: none; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; 
+      position: relative; border: 2px solid var(--accent); box-shadow: 0 4px 12px rgba(113, 62, 226, 0.15);
+    }
+    .ref-slide-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .ref-replace-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.4); 
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s; cursor: pointer;
+    }
+    .ref-slide-preview:hover .ref-replace-overlay { opacity: 1; }
+    .btn-replace-ref {
+      color: white; border: 1px solid white; padding: 6px 16px; border-radius: 20px; 
+      font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.2); backdrop-filter: blur(4px);
+    }
+    .ref-delete-btn {
+      position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
+      background: rgba(0,0,0,0.5); color: white; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 20;
+      font-size: 14px; line-height: 1;
+    }
+    .ref-delete-btn:hover { background: rgba(239, 68, 68, 0.9); }
+    .ref-slide-preview:hover .ref-delete-btn { opacity: 1; }
+
+    /* Preview Item Styling */
+    .preview-list {
+      width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;
+    }
+    .preview-item {
+      position: relative; width: 100%; border-radius: 8px; overflow: hidden; 
+      cursor: pointer; transition: all 0.2s; border: 3px solid transparent;
+    }
+    .preview-item.selected {
+      border-color: var(--accent); box-shadow: 0 4px 12px rgba(113, 62, 226, 0.2);
+    }
+    .preview-item img {
+      width: 100%; height: auto; display: block;
+    }
+    .selection-overlay {
+      position: absolute; top: 10px; left: 10px; width: 24px; height: 24px;
+      background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      border: 1px solid #ccc; transition: all 0.2s;
+    }
+    .preview-item.selected .selection-overlay {
+      background: var(--accent); border-color: var(--accent); color: white;
+    }
+    .selection-overlay::after {
+      content: "✓"; font-size: 14px; color: transparent; font-weight: bold;
+    }
+    .preview-item.selected .selection-overlay::after {
+      color: white;
+    }
+
+    /* Selection Toolbar */
+    .preview-toolbar {
+      width: 100%; background: white; padding: 12px 20px; margin-bottom: 20px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 10;
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
+    .toolbar-hint { color: var(--subtext); font-size: 13px; }
+    .checkbox-btn {
+      display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: 6px; transition: background 0.2s;
+    }
+    .checkbox-btn:hover { background: #f5f5f7; }
+    .checkbox-circle {
+      width: 18px; height: 18px; border: 2px solid #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .checkbox-btn.active .checkbox-circle {
+      border-color: var(--accent); background: var(--accent); color: white;
+    }
+    .checkbox-btn.active .checkbox-circle::after {
+      content: "✓"; font-size: 12px;
+    }
+
+    /* Modal 2: Loading (Dark Theme) */
+    .loading-card {
+      background: #1a1a1a; color: white; width: 400px; height: 280px; border-radius: 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .loading-spinner {
+      width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: #d946ef; border-right-color: #8b5cf6;
+      border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24px;
+    }
+    .loading-text { font-size: 16px; font-weight: 500; margin-bottom: 24px; }
+    .loading-bar-bg { width: 240px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-bottom: 32px; overflow: hidden; }
+    .loading-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #d946ef, #8b5cf6); border-radius: 2px; transition: width 0.3s; }
+    .btn-stop {
+      background: transparent; border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.8);
+      padding: 6px 20px; border-radius: 99px; font-size: 13px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-stop:hover { border-color: white; color: white; }
+
+    /* Modal 3: Comparison Result */
+    .compare-container {
+      display: flex; gap: 20px; width: 100%; /* Height is determined by content */
+    }
+    .compare-col {
+      flex: 1; display: flex; flex-direction: column; gap: 12px;
+    }
+    .compare-label {
+      font-size: 14px; font-weight: 600; color: #666; text-align: center;
+      position: sticky; top: -40px; background: #e5e5e5; z-index: 10; padding: 8px 0; /* Make label sticky */
+    }
+    .compare-view {
+      flex: 1; background: white; border-radius: 8px; overflow: hidden; position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+    }
+    .compare-scroll {
+      /* Removed internal scroll */
+      width: 100%; padding: 16px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .compare-scroll img {
+      width: 100%; height: auto; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: block;
+    }
+    
+    .modal-footer {
+      height: 80px; background: #222; display: flex; align-items: center; justify-content: center; gap: 16px; flex-shrink: 0;
+    }
+    
+    .btn-action {
+      padding: 12px 32px; border-radius: 99px; font-weight: 600; cursor: pointer; border: none; font-size: 16px; min-width: 140px;
+    }
+    .btn-purple { background: var(--accent); color: white; }
+    .btn-purple:hover { background: var(--accent-hover); }
+    .btn-white { background: white; color: #333; }
+    .btn-white:hover { background: #f0f0f0; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Modal 1: Source Preview -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="previewTitle">PPT 预览</span>
+        <div class="modal-close" onclick="closeModal('previewModal')">✕</div>
+      </div>
+      <div class="modal-body" style="padding: 0; display: block; overflow: hidden;">
+        <div class="modal-split-view">
+          <div class="modal-left">
+            <div class="preview-image-container" id="previewList" style="overflow-y: auto; padding: 20px; width: 100%; height: 100%;">
+              <!-- Images will be injected here -->
+            </div>
+          </div>
+          <div class="modal-right">
+            <div class="settings-panel">
+              <!-- Mode Selection -->
+              <div class="section-label">美化模式</div>
+              <div class="mode-selection" id="modalModeSelection">
+                <div class="mode-option active" onclick="selectMode(this, 'diagram')">
+                  <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  <div class="mode-label">规范设计</div>
+                  <div class="mode-desc">遵守模板规范，仅优化内容排版与图示</div>
+                </div>
+                <div class="mode-option" onclick="selectMode(this, 'free')">
+                  <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                  <div class="mode-label">自由美化</div>
+                  <div class="mode-desc">自由设计页面，最大化视觉表现力</div>
+                </div>
+              </div>
+
+              <!-- Reference Design -->
+              <div class="section-label">参考设计</div>
+              <div class="mini-tabs">
+                <div class="mini-tab active" onclick="switchTab(this, 'ref-doc')">文档幻灯片</div>
+                <div class="mini-tab" onclick="switchTab(this, 'ref-lib')">模板库</div>
+                <div class="mini-tab" onclick="switchTab(this, 'ref-up')">上传参考</div>
+              </div>
+              
+              <div id="ref-doc" class="ref-content active">
+                <div class="ref-slide-preview" id="refSlideContainer">
+                   <img id="refSlideImg" src="">
+                   <div class="ref-replace-overlay" onclick="openRefSelection()">
+                      <div class="btn-replace-ref">更换参考页</div>
+                   </div>
+                   <div class="ref-delete-btn" onclick="removeRefSlide(event)">×</div>
+                </div>
+                <button id="btnAddRef" class="btn-add-ref" onclick="openRefSelection()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  添加参考页
+                </button>
+              </div>
+              <div id="ref-lib" class="ref-content">
+                <div class="template-grid-mini">
+                  <div class="template-item-mini" style="background: #e3f2fd;"></div>
+                  <div class="template-item-mini" style="background: #f3e5f5;"></div>
+                  <div class="template-item-mini" style="background: #e8f5e9;"></div>
+                  <div class="template-item-mini" style="background: #fff3e0;"></div>
+                </div>
+              </div>
+              <div id="ref-up" class="ref-content">
+                <div class="upload-area-mini">
+                  <div style="font-size: 24px; margin-bottom: 8px;">📷</div>
+                  <div style="font-size: 12px; color: #999;">点击上传参考图片</div>
+                </div>
+              </div>
+
+              <!-- Preference Input -->
+              <div class="section-label" style="margin-top: 24px;">偏好输入</div>
+              <textarea class="pref-input" rows="3" placeholder="例如：保持蓝色主色调，强调数据图表..."></textarea>
+            </div>
+            
+            <div class="settings-footer">
+              <button class="btn-action btn-purple" style="width: 100%;" onclick="startBeautify()">开始美化</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Loading -->
+  <div class="modal-overlay" id="loadingModal">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">正在美化...</div>
+      <div class="loading-bar-bg">
+        <div class="loading-bar-fill" id="loadingFill"></div>
+      </div>
+      <button class="btn-stop" onclick="closeModal('loadingModal')">停止</button>
+    </div>
+  </div>
+
+  <!-- Modal 3: Comparison Result -->
+  <div class="modal-overlay" id="resultModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>美化前后对比</span>
+        <div class="modal-close" onclick="closeModal('resultModal')">✕</div>
+      </div>
+      <div class="modal-body">
+        <div class="compare-container">
+          <div class="compare-col">
+            <div class="compare-label">原始 PPT</div>
+            <div class="compare-view">
+              <div class="compare-scroll" id="compareOriginalList"></div>
+            </div>
+          </div>
+          <div class="compare-col">
+            <div class="compare-label">美化 PPT</div>
+            <div class="compare-view">
+              <div class="compare-scroll" id="compareResultList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action btn-white" onclick="alert('进入编辑模式')">在线打开</button>
+        <button class="btn-action btn-purple" onclick="alert('下载 PPT 文件')">下载 PPT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Select Reference Slide -->
+  <div class="modal-overlay" id="refSelectModal" style="z-index: 300;">
+    <div class="modal-card" style="width: 800px; height: 600px; max-width: 90vw; max-height: 80vh;">
+      <div class="modal-header">
+        <span>选择参考页面</span>
+        <div class="modal-close" onclick="closeModal('refSelectModal')">✕</div>
+      </div>
+      <div class="modal-body" style="background: #f5f5f7; padding: 20px; overflow-y: auto;">
+         <div class="ref-select-grid" id="refSelectGrid">
+            <!-- JS populates this -->
+         </div>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-left">
+      <div class="logo-icon">AI</div>
+      <div class="logo-text">WPS AIPPT</div>
+      <div class="divider"></div>
+      <div class="page-title">PPT 美化</div>
+    </div>
+    
+    <div class="steps-container" style="position: absolute; left: 50%; transform: translateX(-50%);">
+      <div class="step-item active">
+        <div class="step-circle">1</div>
+        <div class="step-text">上传 PPT</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" id="step2">
+        <div class="step-circle">2</div>
+        <div class="step-text">AI 智能美化</div>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" id="step3">
+        <div class="step-circle">3</div>
+        <div class="step-text">在线编辑/下载</div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="avatar">
+        <!-- 模拟头像 -->
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="#ccc"><rect width="24" height="24" rx="12"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero-section">
+      <div class="hero-title-row">
+        <span class="hero-icon">✨</span>
+        <h1 class="hero-title">AI PPT 一键美化</h1>
+        <span class="hero-tag">限时免费</span>
+      </div>
+      <p class="hero-desc">搭载 Nano Banana Pro 模型，让每一页演示都如香蕉般“剥”开见芯，惊艳全场。</p>
+    </section>
+
+    <section class="upload-container">
+      <div class="upload-box" id="uploadBox">
+        <div class="upload-icon-group">
+          <div class="file-icon">TXT</div>
+          <div class="file-icon">PDF</div>
+          <div class="file-icon">PPT</div>
+        </div>
+        <div class="upload-title">点击或拖拽 PPT 文件到这里</div>
+        <div class="upload-desc">支持 .pptx, .ppt 格式，文件大小不超过 50MB</div>
+        <button class="upload-btn">选择文件</button>
+        <input type="file" id="fileInput" accept=".ppt,.pptx" style="display: none;">
+        
+        <!-- Processing State Overlay -->
+        <div class="processing-overlay" id="processingOverlay">
+          <div class="spinner"></div>
+          <div class="progress-text">正在解析文档...</div>
+          <div class="progress-sub">AI 正在分析页面结构与内容</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="recommend-section">
+      <div class="section-header">
+        <div class="section-title">
+          <span>🔥</span> 社区精选美化案例
+        </div>
+      </div>
+      <div class="grid">
+        <div class="grid-item">
+          <div class="item-preview" style="background: #e1f5fe;"></div>
+          <div class="item-info">
+            <div class="item-title">年终总结汇报</div>
+            <div class="item-tag">商务 / 简约</div>
+          </div>
+        </div>
+        <div class="grid-item">
+          <div class="item-preview" style="background: #f3e5f5;"></div>
+          <div class="item-info">
+            <div class="item-title">产品发布会</div>
+            <div class="item-tag">科技 / 酷炫</div>
+          </div>
+        </div>
+        <div class="grid-item">
+          <div class="item-preview" style="background: #e8f5e9;"></div>
+          <div class="item-info">
+            <div class="item-title">项目竞标方案</div>
+            <div class="item-tag">正式 / 大气</div>
+          </div>
+        </div>
+        <div class="grid-item">
+          <div class="item-preview" style="background: #fff3e0;"></div>
+          <div class="item-info">
+            <div class="item-title">教育培训课件</div>
+            <div class="item-tag">活泼 / 清晰</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Copyright © 2026 WPS AIPPT. All rights reserved.
+  </footer>
+
+  <script>
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const processingOverlay = document.getElementById('processingOverlay');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+
+    // Click trigger
+    uploadBox.addEventListener('click', (e) => {
+      // 直接开始演示流程，跳过文件选择
+      startDemo();
+    });
+
+    // 保留文件输入框作为备用（如果需要的话），或者也可以忽略
+    fileInput.addEventListener('click', (e) => {
+      e.stopPropagation(); 
+    });
+
+    // Drag & Drop
+    uploadBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadBox.classList.add('drag-over');
+    });
+
+    uploadBox.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      uploadBox.classList.remove('drag-over');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadBox.classList.remove('drag-over');
+      // 拖拽也直接触发演示流程
+      startDemo();
+    });
+
+    // File Selection
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        startDemo();
+      }
+    });
+
+    function startDemo() {
+      console.log('Starting Demo with local files...');
+      
+      // Update Title
+      document.getElementById('previewTitle').textContent = '演示文档.pptx';
+      
+      // Show processing state
+      processingOverlay.classList.add('show');
+      
+      // Simulate analysis and load local images 1-3
+      setTimeout(() => {
+        processingOverlay.classList.remove('show');
+        
+        // Populate Preview List with 1.png, 2.png, 3.png
+        const previewListContainer = document.getElementById('previewList');
+        previewListContainer.className = ''; // Reset class if needed, we'll use inner structure
+        previewListContainer.innerHTML = `
+          <div class="preview-toolbar">
+            <div class="toolbar-left">
+              <div class="checkbox-btn active" id="selectAllBtn" onclick="toggleSelectAll()">
+                <div class="checkbox-circle"></div>
+                <span>全选</span>
+              </div>
+              <span id="selectionCount">已选 3 页</span>
+            </div>
+            <div class="toolbar-hint">请选择需要 AI 美化的页面</div>
+          </div>
+          <div class="preview-list" id="previewImages"></div>
+        `;
+        
+        const previewImages = document.getElementById('previewImages');
+        
+        ['1.png', '2.png', '3.png'].forEach((src, index) => {
+          const item = document.createElement('div');
+          item.className = 'preview-item selected';
+          item.onclick = function() { toggleSelection(this); };
+          item.innerHTML = `
+            <img src="${src}" onerror="this.src='https://via.placeholder.com/800x450?text=Image+Not+Found'">
+            <div class="selection-overlay"></div>
+          `;
+          previewImages.appendChild(item);
+        });
+
+        document.getElementById('previewModal').classList.add('show');
+        step2.classList.add('active');
+        
+        // Ensure scroll to top
+        const scrollContainer = document.querySelector('#previewList');
+        if (scrollContainer) scrollContainer.scrollTop = 0;
+      }, 800);
+    }
+    
+    // Tab Switching Logic
+    window.selectMode = function(el, mode) {
+      document.querySelectorAll('#modalModeSelection .mode-option').forEach(opt => opt.classList.remove('active'));
+      el.classList.add('active');
+    }
+    
+    window.switchTab = function(el, targetId) {
+      el.parentNode.querySelectorAll('.mini-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      
+      el.closest('.settings-panel').querySelectorAll('.ref-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+    }
+    
+    function openRefSelection() {
+      const modal = document.getElementById('refSelectModal');
+      const grid = document.getElementById('refSelectGrid');
+      grid.innerHTML = '';
+      
+      ['1.png', '2.png', '3.png'].forEach((src, i) => {
+         const item = document.createElement('div');
+         item.className = 'ref-select-item';
+         item.onclick = () => confirmRefSelection(src);
+         item.innerHTML = `
+            <img src="${src}">
+            <div class="ref-page-num">第 ${i+1} 页</div>
+         `;
+         grid.appendChild(item);
+      });
+      
+      modal.classList.add('show');
+    }
+
+    function confirmRefSelection(src) {
+      const container = document.getElementById('refSlideContainer');
+      const img = document.getElementById('refSlideImg');
+      const btn = document.getElementById('btnAddRef');
+      
+      img.src = src;
+      container.style.display = 'block';
+      btn.style.display = 'none';
+      
+      closeModal('refSelectModal');
+    }
+    
+    function removeRefSlide(e) {
+      if (e) e.stopPropagation();
+      const container = document.getElementById('refSlideContainer');
+      const btn = document.getElementById('btnAddRef');
+      container.style.display = 'none';
+      btn.style.display = 'flex';
+    }
+    
+    function toggleSelection(item) {
+      item.classList.toggle('selected');
+      updateSelectionState();
+    }
+    
+    function toggleSelectAll() {
+      const btn = document.getElementById('selectAllBtn');
+      const isSelecting = !btn.classList.contains('active');
+      
+      const items = document.querySelectorAll('.preview-item');
+      items.forEach(item => {
+        if (isSelecting) item.classList.add('selected');
+        else item.classList.remove('selected');
+      });
+      
+      updateSelectionState();
+    }
+    
+    function updateSelectionState() {
+      const items = document.querySelectorAll('.preview-item');
+      const selected = document.querySelectorAll('.preview-item.selected');
+      const btn = document.getElementById('selectAllBtn');
+      
+      // Update count
+      document.getElementById('selectionCount').textContent = `已选 ${selected.length} 页`;
+      
+      // Update Select All button state
+      if (selected.length === items.length && items.length > 0) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function startBeautify() {
+      // Hide preview modal
+      document.getElementById('previewModal').classList.remove('show');
+      
+      // Show loading modal
+      const loadingModal = document.getElementById('loadingModal');
+      const loadingFill = document.getElementById('loadingFill');
+      loadingModal.classList.add('show');
+      
+      // Simulate progress
+      loadingFill.style.width = '0%';
+      setTimeout(() => { loadingFill.style.width = '20%'; }, 100);
+      setTimeout(() => { loadingFill.style.width = '50%'; }, 800);
+      setTimeout(() => { loadingFill.style.width = '80%'; }, 1500);
+      setTimeout(() => { loadingFill.style.width = '100%'; }, 2000);
+      
+      setTimeout(() => {
+        // Hide Loading
+        loadingModal.classList.remove('show');
+        
+        // Show Result Modal
+        document.getElementById('resultModal').classList.add('show');
+        step3.classList.add('active');
+
+        // Populate Comparison Lists
+        const originalList = document.getElementById('compareOriginalList');
+        const resultList = document.getElementById('compareResultList');
+        
+        originalList.innerHTML = '';
+        resultList.innerHTML = '';
+
+        // Left: 1.png, 2.png, 3.png
+        ['1.png', '2.png', '3.png'].forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          originalList.appendChild(img);
+        });
+
+        // Right: 4.png, 5.png, 6.png
+        ['4.png', '5.png', '6.png'].forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          resultList.appendChild(img);
+        });
+
+      }, 2200);
+    }
+  </script>
+</body>
+</html>
