@@ -62,6 +62,29 @@
         left: 20px;
         font-weight: 600;
       }
+      .header-actions {
+        position: absolute;
+        right: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .export-btn {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .export-btn:hover {
+        border-color: var(--active);
+        color: var(--active);
+        box-shadow: var(--shadow-sm);
+      }
 
       .layout {
         flex: 1;
@@ -249,6 +272,27 @@
         color: var(--subtext);
         position: relative;
         overflow: hidden;
+      }
+      .slide-delete {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.12);
+        background: rgba(255,255,255,0.9);
+        color: #d92d20;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: all 0.2s ease;
+        z-index: 2;
+      }
+      .slide-card:hover .slide-delete {
+        opacity: 1;
+        transform: translateY(0);
       }
       
       .slide-card .select-ring {
@@ -916,7 +960,11 @@
   </head>
   <body>
     <div class="app">
-      <header></header>
+      <header>
+        <div class="header-actions">
+          <button class="export-btn" id="exportBtn">导出 PPTX</button>
+        </div>
+      </header>
       <div class="layout">
         <aside class="left">
           <div class="left-header">
@@ -1104,6 +1152,7 @@
       const selectionText = document.getElementById('selectionText');
       const pageRangeValue = document.getElementById('pageRangeValue');
       const selectAllBtn = document.getElementById('selectAllBtn');
+      const exportBtn = document.getElementById('exportBtn');
       const modeSelection = document.getElementById('modeSelection');
       const refTabsContainer = document.getElementById('refTabs');
       const generateBtn = document.getElementById('generateBtn');
@@ -1181,8 +1230,13 @@
           el.innerHTML = `
             <img src="${src}" style="width: 100%; height: 100%; object-fit: contain; display: block;">
             <div class="select-ring"></div>
+            <button class="slide-delete" data-page="${i}">删除</button>
           `;
           el.addEventListener('click', (e) => handleSelection(e, i));
+          el.querySelector('.slide-delete').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deletePage(i);
+          });
           centerGrid.appendChild(el);
         });
       }
@@ -1274,6 +1328,12 @@
               state.pages.forEach((_, index) => state.selectedPages.add(index + 1));
             }
             updateSelectionUI();
+          });
+        }
+
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => {
+            exportPptx();
           });
         }
 
@@ -1478,9 +1538,43 @@
             state.pages.splice(index + 1, 0, beautifiedSrc);
          });
          
+         state.selectedPages.clear();
          renderThumbs();
          renderCenter();
          updateSelectionUI();
+      }
+
+      function deletePage(pageNumber) {
+         const index = pageNumber - 1;
+         if (index < 0 || index >= state.pages.length) return;
+         state.pages.splice(index, 1);
+
+         const newSelection = new Set();
+         state.selectedPages.forEach(p => {
+           if (p === pageNumber) return;
+           if (p > pageNumber) newSelection.add(p - 1);
+           else newSelection.add(p);
+         });
+         state.selectedPages = newSelection;
+         
+         renderThumbs();
+         renderCenter();
+         updateSelectionUI();
+      }
+
+      function exportPptx() {
+         const blob = new Blob(
+           ['PPTX export placeholder'],
+           { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }
+         );
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = 'beautified.pptx';
+         document.body.appendChild(a);
+         a.click();
+         a.remove();
+         URL.revokeObjectURL(url);
       }
 
       // History Preview Close
